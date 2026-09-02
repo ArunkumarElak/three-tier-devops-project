@@ -18,11 +18,22 @@ app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
 
-db.sequelize.sync();
-// // drop the table if it already exists
-// db.sequelize.sync({ force: true }).then(() => {
-//   console.log("Drop and re-sync db.");
-// });
+// Retry the initial schema sync: the MySQL container may still be
+// initializing when the API starts, even after the compose healthcheck.
+function syncWithRetry(retries, delayMs) {
+  db.sequelize
+    .sync()
+    .then(() => console.log("Database synced."))
+    .catch((err) => {
+      if (retries <= 0) {
+        console.error("Unable to sync database:", err.message);
+        process.exit(1);
+      }
+      console.log(`DB not ready (${err.message}), retrying in ${delayMs}ms...`);
+      setTimeout(() => syncWithRetry(retries - 1, delayMs), delayMs);
+    });
+}
+syncWithRetry(10, 3000);
 
 // simple route
 app.get("/", (req, res) => {
