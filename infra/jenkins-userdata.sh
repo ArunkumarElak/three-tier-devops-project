@@ -11,11 +11,12 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y openjdk-17-jre-headless ca-certificates curl gnupg git
+# Jenkins LTS (2026 releases) requires Java 21+
+apt-get install -y openjdk-21-jre-headless ca-certificates curl gnupg git
 
-# Jenkins LTS
-curl -fsSL https://pkg.jenkins.io/debian-lts/jenkins.io-2023.key -o /usr/share/keyrings/jenkins-keyring.asc
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-lts binary/" > /etc/apt/sources.list.d/jenkins.list
+# Jenkins LTS — note: the repo signing key rotates every ~3 years; this is the 2026 key
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key -o /usr/share/keyrings/jenkins-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
 apt-get update -y
 apt-get install -y jenkins
 
