@@ -1,0 +1,57 @@
+# Production compose file used on the AWS app server.
+# Images are pulled from Docker Hub (built and pushed by Jenkins);
+# nothing is built on this host. Expects a .env file next to it.
+
+services:
+  mysqldb:
+    image: mysql:8.0
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - MYSQL_ROOT_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQL_DATABASE=$MYSQLDB_DATABASE
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$MYSQLDB_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bezkoder-api:
+    image: arunelak/tutorials-api:latest
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - DB_HOST=mysqldb
+      - DB_USER=$MYSQLDB_USER
+      - DB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - DB_NAME=$MYSQLDB_DATABASE
+      - DB_PORT=3306
+      - NODE_DOCKER_PORT=8080
+      - CLIENT_ORIGIN=$CLIENT_ORIGIN
+    networks:
+      - backend
+      - frontend
+
+  bezkoder-ui:
+    image: arunelak/tutorials-ui:latest
+    depends_on:
+      - bezkoder-api
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - frontend
+
+volumes:
+  db:
+
+networks:
+  backend:
+  frontend:
