@@ -1,8 +1,7 @@
-version: '3.8'
 
 services:
   mysqldb:
-    image: mysql:5.7
+    image: mysql:8.0
     restart: unless-stopped
     env_file: ./.env
     environment:
@@ -14,10 +13,16 @@ services:
       - db:/var/lib/mysql
     networks:
       - backend
-  
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$MYSQLDB_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   bezkoder-api:
     depends_on:
-      - mysqldb
+      mysqldb:
+        condition: service_healthy
     build: ./bezkoder-api
     restart: unless-stopped
     env_file: ./.env
